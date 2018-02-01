@@ -1,4 +1,4 @@
-#cfn-custom-resource
+# cfn-custom-resource
 
 `cfn_custom_resource` provides an abstract base class to make it easier to implement
 [`AWS CloudFormation custom resources`](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html).
@@ -12,7 +12,7 @@ Logging to CloudWatch is provided by the `logger` field.
 
 More details are available in the docs in the `cfn_custom_resource` module.
 
-##Quickstart
+## Quickstart
 
 ```python
 from cfn_custom_resource import CloudFormationCustomResource
@@ -46,7 +46,7 @@ class MyCustomResource(CloudFormationCustomResource):
         # implement
 ```
 
-##Details
+## Details
 
 The `handle` method on `CloudFormationCustomResource` does a few things. It logs
 the event and context, populates the class fields, generates a physical resource id
