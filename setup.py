@@ -27,7 +27,7 @@ setup(
                       'botocore'],
     
     project_urls={
-        "https://github.com/iRobotCorporation/cfn-custom-resource",
+        "Source Code": "https://github.com/iRobotCorporation/cfn-custom-resource",
     },
     author='Ben Kehoe',
     author_email='bkehoe@irobot.com',
