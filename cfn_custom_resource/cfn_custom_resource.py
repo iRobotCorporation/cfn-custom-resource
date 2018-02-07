@@ -341,9 +341,15 @@ class CloudFormationCustomResource(object):
             if not self.status:
                 self.status = self.STATUS_SUCCESS
         except Exception as e:
+            if hasattr(e, 'message'):
+                # If the exception has a message attribute, use it.
+                message = e.message
+            else:
+                # Otherwise rely on the __str__ method.
+                message = str(e)
             if not self.status:
                 self.status = self.STATUS_FAILED
-                self.failure_reason = 'Custom resource {} failed due to exception "{}".'.format(self.__class__.__name__, e.message)
+                self.failure_reason = 'Custom resource {} failed due to exception "{}".'.format(self.__class__.__name__, message)
             if self.failure_reason:
                 self._base_logger.error(str(self.failure_reason))
             self._base_logger.debug(traceback.format_exc())
@@ -439,6 +445,12 @@ class CloudFormationCustomResource(object):
         try:
             return resource.send_response_function(resource, resource.response_url, response_content)
         except Exception as e:
-            resource._base_logger.error("send response failed: %s" % e.message)
+            if hasattr(e, 'message'):
+                # If the exception has a message attribute, use it.
+                message = e.message
+            else:
+                # Otherwise rely on the __str__ method.
+                message = str(e)
+            resource._base_logger.error("send response failed: %s" % message)
             resource._base_logger.debug(traceback.format_exc())
 
