@@ -159,7 +159,7 @@ class CloudFormationCustomResource(object):
             self._base_logger.setLevel(self.BASE_LOGGER_LEVEL)
 
         if not resource_type:
-            resource_type = self.__class__.__name__
+            resource_type = getattr(self, 'RESOURCE_TYPE', self.__class__.__name__)
 
         def process_resource_type(resource_type):
             if not (resource_type.startswith('Custom::') or resource_type == 'AWS::CloudFormation::CustomResource'):
@@ -199,6 +199,8 @@ class CloudFormationCustomResource(object):
 
     def validate_resource_type(self, resource_type):
         """Return True if resource_type is valid"""
+        if not self.resource_type:
+            return True
         if isinstance(self.resource_type, (list, tuple)):
             return resource_type in self.resource_type
         return resource_type == self.resource_type

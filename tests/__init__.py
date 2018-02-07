@@ -3,7 +3,7 @@ from __future__ import print_function
 import unittest
 import six
 
-from cfn_custom_resource import CloudFormationCustomResource, utils as ccr_utils
+from cfn_custom_resource import CloudFormationCustomResource, utils as ccr_utils, decorator
 
 import logging
 logging.basicConfig()
@@ -69,7 +69,9 @@ class BasicTest(unittest.TestCase):
     def test_update(self):
         properties = {
         }
-        event = ccr_utils.generate_request('update', 'Custom::CustomResourceBasicTest', properties, CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT)
+        old_properties = {}
+        event = ccr_utils.generate_request('update', 'Custom::CustomResourceBasicTest', properties, CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT,
+                                           old_properties=old_properties)
         
         outputs = {'output_key': 'output_value'}
         
@@ -158,6 +160,31 @@ class TestPhysicalResourceId(unittest.TestCase):
         obj.handle(event, ccr_utils.MockLambdaContext())
         
         self.assertEqual(obj.physical_resource_id, id_to_set)
+
+class TestDecorator(unittest.TestCase):
+    
+    def test_decorator(self):
+        
+        @decorator.create
+        def create(resource):
+            print('here2')
+            pass
+        
+        @decorator.update
+        def update(resource):
+            pass
+        
+        @decorator.delete
+        def delete(resource):
+            pass
+        
+        properties = {
+        }
+        event = ccr_utils.generate_request('create', 'Custom::DecoratorTest', properties, CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT)
+        
+        decorator.handler(event, ccr_utils.MockLambdaContext())
+        
+        
 
 if __name__ == '__main__':
     unittest.main()

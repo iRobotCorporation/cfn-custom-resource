@@ -84,7 +84,7 @@ def generate_request(request_type, resource_type, properties, response_url,
         event['PhysicalResourceId'] = physical_resource_id
 
     if request_type == 'Update':
-        if not old_properties:
+        if old_properties is None:
             raise ValueError('old properties not set for {}'.format(request_type))
         event['OldResourceProperties'] = old_properties
 
