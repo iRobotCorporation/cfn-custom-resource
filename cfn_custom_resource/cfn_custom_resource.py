@@ -32,6 +32,8 @@ class MyCustomResource(CloudFormationCustomResource):
     def delete(self):
         # implement
 
+handler = MyCustomResource.get_handler()
+
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -316,22 +318,54 @@ class CloudFormationCustomResource(object):
         self.status = None
         self.failure_reason = None
         self.resource_outputs = {}
-
+        
+        self.continuation = self.event.get('Continuation')
+        
         try:
-            if not self.validate_resource_type(self.request_resource_type):
-                raise Exception('invalid resource type')
-
-            if not self.validate():
-                pass
-
-            if not self.physical_resource_id and not self.DISABLE_PHYSICAL_RESOURCE_ID_GENERATION:
-                self.physical_resource_id = self.generate_physical_resource_id_function(max_len=self.PHYSICAL_RESOURCE_ID_MAX_LEN)
+            if self.continuation:
+                self._base_logger.debug("Received continuation")
+                self.physical_resource_id = self.continuation['PhysicalResourceId']
+            else:
+                if not self.validate_resource_type(self.request_resource_type):
+                    raise Exception('invalid resource type')
+    
+                if not self.validate():
+                    pass
+    
+                if not self.physical_resource_id and not self.DISABLE_PHYSICAL_RESOURCE_ID_GENERATION:
+                    self.physical_resource_id = self.generate_physical_resource_id_function(max_len=self.PHYSICAL_RESOURCE_ID_MAX_LEN)
 
             self.populate()
 
-            method_name = self.request_type.lower()
-            self._base_logger.debug("Dispatching to subclass: {}".format(method_name))
-            outputs = getattr(self, method_name)()
+            
+            
+            try:
+                method_name = self.request_type.lower()
+                args = []
+                if self.continuation:
+                    method_name = 'continue_{}'.format(method_name)
+                    args = [self.continuation['State']]
+                self._base_logger.debug("Dispatching to subclass: {}".format(method_name))
+                outputs = getattr(self, method_name)(*args)
+            except Continuation as c:
+                self._base_logger.debug("Continuation requested")
+                continuation_method = 'continue_{}'.format(self.request_type.lower())
+                if not hasattr(self, continuation_method):
+                    self.status = self.STATUS_FAILED
+                    self.failure_reason = "Custom resource attempted continuation but does not define continuation methods"
+                self_arn = self.context.invoked_function_arn
+                client = self.get_boto3_client('lambda')
+                event = self.event
+                event['Continuation'] = {
+                    'PhysicalResourceId': self.physical_resource_id,
+                    'State': c.state,
+                }
+                client.invoke(
+                    FunctionName=self_arn,
+                    InvocationType='Event',
+                    Payload=json.dumps(event)
+                )
+                return
 
             if outputs:
                 if not isinstance(outputs, dict):
