@@ -2,17 +2,11 @@
 
 `cfn_custom_resource` provides an abstract base class to make it easier to implement
 [`AWS CloudFormation custom resources`](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html).
-It was developed from Gene Wood's [`cfnlambda`](https://github.com/gene1wood/cfnlambda), which provides lower-level functions and
-decorators for the same purpose.
+It was developed from Gene Wood's [`cfnlambda`](https://github.com/gene1wood/cfnlambda), which provides lower-level functions and decorators for the same purpose.
 
-The `CloudFormationCustomResource` class requires a child class to implement
-three methods: `create`, `update`, and `delete`, for each of the respective
-CloudFormation actions. Failure can be indicated by raising an exception.
-Logging to CloudWatch is provided by the `logger` field.
-
-More details are available in the docs in the `cfn_custom_resource` module.
-
-## Quickstart
+At its simplest, you subclass the `CloudFormationCustomResource` and implement three methods:
+`create`, `update`, and `delete`, for each of the respective CloudFormation actions. Indicate failure by raising an exception. If you want attributes available on the resource within CloudFormation, return them as a dictionary. Your subclass has a class method `get_handler`, which will return a Lambda handler function.
+Logging to CloudWatch is provided by the `logger` field. 
 
 ```python
 from cfn_custom_resource import CloudFormationCustomResource
@@ -44,42 +38,11 @@ class MyCustomResource(CloudFormationCustomResource):
 
     def delete(self):
         # implement
+
+handler = MyCustomResource.get_handler()
 ```
 
-## Details
-
-The `handle` method on `CloudFormationCustomResource` does a few things. It logs
-the event and context, populates the class fields, generates a physical resource id
-for the resource, and calls the `validate` and `populate` methods that the child class
-can override. Then, it calls the `create`, `update`, or `delete` method as
-appropriate, adds any returned dictionary to the `resource_outputs` dict, or, in
-case of an exception, sets the status to FAILED. It then cleans up and returns the
-result to CloudFormation.
-
-The `resource_outputs` dict is then available in CloudFormation for use with the
-`Fn::GetAtt` function.
-
-```json
-{ "Fn::GetAtt": [ "MyCustomResource", "IP" ] }
-```
-
-If the return value from the `create`/`update`/`delete` method
-is not a dict, it is placed into the `resource_outputs` dict with key 'Value'.
-
-If the `DELETE_LOGS_ON_STACK_DELETION` class field is set to True, all
-CloudWatch logs generated while the stack was created, updated and deleted will
-be deleted upon a successful stack deletion. If an exception is thrown during
-stack deletion, the logs will always be retained to facilitate troubleshooting.
-NOTE: this is not intended for use when multiple stacks access the same function.
-
-Finally, the custom resource will not report a status of FAILED when a stack
-DELETE is attempted. This will prevent a CloudFormation stack from getting stuck
-in a DELETE_FAILED state. One side effect of this is that if your AWS Lambda
-function throws an exception while trying to process a stack deletion, though
-the stack will show a status of DELETE_COMPLETE, there could still be resources
-which your AWS Lambda function created which have not been deleted. This will be
-noted in the logs. To disable this feature, set HIDE_STACK_DELETE_FAILURE
-class field to False.
+See more details in the [wiki](https://github.com/iRobotCorporation/cfn-custom-resource/wiki)
 
 ## How to contribute
 Feel free to open issues or fork and submit PRs.
