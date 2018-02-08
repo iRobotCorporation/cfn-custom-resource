@@ -5,6 +5,8 @@ import six
 
 from cfn_custom_resource import CloudFormationCustomResource, utils as ccr_utils, decorator
 
+CloudFormationCustomResource.RAISE_ON_FAILURE = True
+
 import logging
 logging.basicConfig()
 
@@ -167,7 +169,6 @@ class TestDecorator(unittest.TestCase):
         
         @decorator.create
         def create(resource):
-            print('here2')
             pass
         
         @decorator.update
@@ -183,8 +184,6 @@ class TestDecorator(unittest.TestCase):
         event = ccr_utils.generate_request('create', 'Custom::DecoratorTest', properties, CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT)
         
         decorator.handler(event, ccr_utils.MockLambdaContext())
-        
-        
 
 if __name__ == '__main__':
     unittest.main()

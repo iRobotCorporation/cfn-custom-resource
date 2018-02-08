@@ -147,8 +147,9 @@ class CloudFormationCustomResource(object):
     
     DUMMY_RESPONSE_URL_SILENT = 'dummy:silent'
     DUMMY_RESPONSE_URL_PRINT = 'dummy:print'
+    RAISE_ON_FAILURE = False
 
-    def __init__(self, resource_type=None, logger=None):
+    def __init__(self, logger=None):
         if logger:
             self.logger = logger
         else:
@@ -158,25 +159,24 @@ class CloudFormationCustomResource(object):
         if self.BASE_LOGGER_LEVEL:
             self._base_logger.setLevel(self.BASE_LOGGER_LEVEL)
 
-        if not resource_type:
-            resource_type = getattr(self, 'RESOURCE_TYPE', self.__class__.__name__)
+        resource_type_spec = getattr(self, 'RESOURCE_TYPE_SPEC', self.__class__.__name__)
 
-        def process_resource_type(resource_type):
-            if not (resource_type.startswith('Custom::') or resource_type == 'AWS::CloudFormation::CustomResource'):
-                resource_type = 'Custom::' + resource_type
-            return resource_type
+        def process_resource_type_spec(resource_type_spec):
+            if not (resource_type_spec.startswith('Custom::') or resource_type_spec == 'AWS::CloudFormation::CustomResource'):
+                resource_type_spec = 'Custom::' + resource_type_spec
+            return resource_type_spec
 
-        if isinstance(resource_type, (list, tuple)):
-            resource_type = [process_resource_type(rt) for rt in resource_type]
-        elif isinstance(resource_type, six.string_types):
-            resource_type = process_resource_type(resource_type)
+        if isinstance(resource_type_spec, (list, tuple)):
+            resource_type_spec = [process_resource_type_spec(rt) for rt in resource_type_spec]
+        elif isinstance(resource_type_spec, six.string_types):
+            resource_type_spec = process_resource_type_spec(resource_type_spec)
 
-        self.resource_type = resource_type
+        self.resource_type_spec = resource_type_spec
 
         self.event = None
         self.context = None
 
-        self.request_resource_type = None
+        self.resource_type = None
         self.request_type = None
         self.response_url = None
         self.stack_id = None
@@ -199,11 +199,11 @@ class CloudFormationCustomResource(object):
 
     def validate_resource_type(self, resource_type):
         """Return True if resource_type is valid"""
-        if not self.resource_type:
+        if not self.resource_type_spec:
             return True
-        if isinstance(self.resource_type, (list, tuple)):
-            return resource_type in self.resource_type
-        return resource_type == self.resource_type
+        if isinstance(self.resource_type_spec, (list, tuple)):
+            return resource_type in self.resource_type_spec
+        return resource_type == self.resource_type_spec
 
     def validate(self):
         """Return True if self.resource_properties is valid."""
@@ -302,7 +302,7 @@ class CloudFormationCustomResource(object):
         self.event = event
         self.context = context
 
-        self.request_resource_type = event['ResourceType']
+        self.resource_type = event['ResourceType']
         self.request_type = event['RequestType']
         self.response_url = event['ResponseURL']
         self.stack_id = event['StackId']
@@ -318,7 +318,7 @@ class CloudFormationCustomResource(object):
         self.resource_outputs = {}
 
         try:
-            if not self.validate_resource_type(self.request_resource_type):
+            if not self.validate_resource_type(self.resource_type):
                 raise Exception('invalid resource type')
 
             if not self.validate():
@@ -340,16 +340,11 @@ class CloudFormationCustomResource(object):
 
             if not self.status:
                 self.status = self.STATUS_SUCCESS
+         
         except Exception as e:
-            if hasattr(e, 'message'):
-                # If the exception has a message attribute, use it.
-                message = e.message
-            else:
-                # Otherwise rely on the __str__ method.
-                message = str(e)
             if not self.status:
                 self.status = self.STATUS_FAILED
-                self.failure_reason = 'Custom resource {} failed due to exception "{}".'.format(self.__class__.__name__, message)
+                self.failure_reason = 'Custom resource {} failed due to exception "{}".'.format(self.__class__.__name__, e)
             if self.failure_reason:
                 self._base_logger.error(str(self.failure_reason))
             self._base_logger.debug(traceback.format_exc())
@@ -442,15 +437,11 @@ class CloudFormationCustomResource(object):
             "Data": outputs
         }
         resource._base_logger.debug("Response body: %s", json.dumps(response_content))
+        if cls.RAISE_ON_FAILURE and resource.status == cls.STATUS_FAILED:
+            raise Exception(resource.failure_reason)
         try:
             return resource.send_response_function(resource, resource.response_url, response_content)
         except Exception as e:
-            if hasattr(e, 'message'):
-                # If the exception has a message attribute, use it.
-                message = e.message
-            else:
-                # Otherwise rely on the __str__ method.
-                message = str(e)
-            resource._base_logger.error("send response failed: %s" % message)
+            resource._base_logger.error("send response failed: {}".format(e))
             resource._base_logger.debug(traceback.format_exc())
 

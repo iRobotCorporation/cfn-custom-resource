@@ -14,7 +14,7 @@ class DecoratorHandler(CloudFormationCustomResource):
     _update_func = None
     _delete_func = None
     
-    RESOURCE_TYPE = None
+    RESOURCE_TYPE_SPEC = None
     
     def create(self):
         return self._create_func[0](self)

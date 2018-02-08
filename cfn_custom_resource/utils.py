@@ -60,7 +60,7 @@ def generate_request(request_type, resource_type, properties, response_url,
                     'Bucket': bucket,
                     'Key': key})
 
-    stack_id = stack_id or "arn:aws:cloudformation:us-west-2:stack/example-stack-name/abc9dbf0-43c2-11e3-a6e8-50fa526be49c"
+    stack_id = stack_id or "arn:aws:cloudformation:us-west-2:123456789012:stack/example-stack-name/abc9dbf0-43c2-11e3-a6e8-50fa526be49c"
 
     request_id = request_id or str(uuid.uuid4())
 

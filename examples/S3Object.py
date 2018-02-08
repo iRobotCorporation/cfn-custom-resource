@@ -81,8 +81,6 @@ class S3Object(CloudFormationCustomResource):
         return self._put()
     
     def update(self):
-        if self.has_property_changed('Bucket') or self.has_property_changed('Key'):
-            self._delete(self.old_resource_properties['Bucket'], self.old_resource_properties['Key'])
         return self._put()
     
     def delete(self):
