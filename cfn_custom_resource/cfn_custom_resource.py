@@ -43,6 +43,7 @@ import traceback
 import random
 import string
 import six
+import threading
 
 from six.moves import http_client
 
@@ -145,6 +146,9 @@ class CloudFormationCustomResource(object):
 
     BASE_LOGGER_LEVEL = None
     
+    TIMEOUT_PROTECTION = True
+    TIMEOUT_BUFFER = 0.5
+    
     DUMMY_RESPONSE_URL_SILENT = 'dummy:silent'
     DUMMY_RESPONSE_URL_PRINT = 'dummy:print'
     RAISE_ON_FAILURE = False
@@ -196,6 +200,9 @@ class CloudFormationCustomResource(object):
 
         self.generate_unique_id_prefix_function = None
         self.generate_physical_resource_id_function = self.generate_unique_id
+        
+        self.timeout_function = self.timeout
+        self.timed_out = False
 
     def validate_resource_type(self, resource_type):
         """Return True if resource_type is valid"""
@@ -328,10 +335,19 @@ class CloudFormationCustomResource(object):
                 self.physical_resource_id = self.generate_physical_resource_id_function(max_len=self.PHYSICAL_RESOURCE_ID_MAX_LEN)
 
             self.populate()
+            
+            if self.TIMEOUT_PROTECTION:
+                t = threading.Timer((self.context.get_remaining_time_in_millis()/1000.0)-self.TIMEOUT_BUFFER,
+                        self.timeout_function, args=[self])
+                t.start()
 
             method_name = self.request_type.lower()
             self._base_logger.debug("Dispatching to subclass: {}".format(method_name))
             outputs = getattr(self, method_name)()
+            
+            if self.timed_out:
+                self.logger.debug("Function time out race condition")
+                return
 
             if outputs:
                 if not isinstance(outputs, dict):
@@ -395,6 +411,15 @@ class CloudFormationCustomResource(object):
             logical_id=logical_resource_id,
             rand=rand,
             )
+
+    @classmethod
+    def timeout(cls, resource):
+        """Handle timeout"""
+        resource.logger.error("Lambda function timed out. Sending failure.")
+        resource.status = resource.STATUS_FAILED
+        resource.failure_reason = "Lambda function timed out"
+        resource.finish_function(resource)
+        resource.timed_out = True
 
     @classmethod
     def send_response(cls, resource, url, response_content):
