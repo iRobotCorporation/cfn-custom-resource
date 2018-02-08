@@ -51,6 +51,10 @@ from six.moves import http_client
 import boto3
 from botocore.vendored import requests
 
+class Continuation(Exception):
+    def __init__(self, state):
+        self.state = state
+
 class CloudFormationCustomResource(object):
     """Base class for CloudFormation custom resource classes.
 
@@ -353,19 +357,20 @@ class CloudFormationCustomResource(object):
                 if not hasattr(self, continuation_method):
                     self.status = self.STATUS_FAILED
                     self.failure_reason = "Custom resource attempted continuation but does not define continuation methods"
-                self_arn = self.context.invoked_function_arn
-                client = self.get_boto3_client('lambda')
-                event = self.event
-                event['Continuation'] = {
-                    'PhysicalResourceId': self.physical_resource_id,
-                    'State': c.state,
-                }
-                client.invoke(
-                    FunctionName=self_arn,
-                    InvocationType='Event',
-                    Payload=json.dumps(event)
-                )
-                return
+                else:
+                    self_arn = self.context.invoked_function_arn
+                    client = self.get_boto3_client('lambda')
+                    event = self.event
+                    event['Continuation'] = {
+                        'PhysicalResourceId': self.physical_resource_id,
+                        'State': c.state,
+                    }
+                    client.invoke(
+                        FunctionName=self_arn,
+                        InvocationType='Event',
+                        Payload=json.dumps(event)
+                    )
+                    return
 
             if outputs:
                 if not isinstance(outputs, dict):
