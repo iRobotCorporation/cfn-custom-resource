@@ -285,9 +285,7 @@ class CloudFormationCustomResource(object):
             for field, value in six.iteritems(vars(obj)):
                 if field.startswith('_'):
                     continue
-                if (isinstance(value, (float, bool, type(None))),
-                    isinstance(value, six.integer_types)
-                    or isinstance(value, six.string_types)):
+                if isinstance(value, (float, bool, type(None)) + six.integer_types + six.string_types):
                     d[field] = value
                 elif isinstance(value, (list, tuple)):
                     d[field] = [plainify(v) for v in value]
