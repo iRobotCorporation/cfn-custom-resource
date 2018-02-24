@@ -25,6 +25,9 @@ setup(
         ],
     },
     packages=["cfn_custom_resource"],
+    package_data={
+        "cfn_custom_resource": ["_version"]
+    },
     install_requires=['boto3',
                       'botocore'],
     project_urls={
