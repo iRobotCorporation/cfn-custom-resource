@@ -157,6 +157,8 @@ class CloudFormationCustomResource(object):
     DUMMY_RESPONSE_URL_PRINT = 'dummy:print'
     RAISE_ON_FAILURE = False
 
+    STRINGIFY_OUTPUT = True
+
     def __init__(self, logger=None):
         if logger:
             self.logger = logger
@@ -429,7 +431,7 @@ class CloudFormationCustomResource(object):
         default_reason = ("See the details in CloudWatch Log Stream: {}".format(resource.context.log_stream_name))
         outputs = {}
         for key, value in six.iteritems(resource.resource_outputs):
-            if not isinstance(value, six.string_types):
+            if resource.STRINGIFY_OUTPUT and not isinstance(value, six.string_types):
                 value = json.dumps(value)
             outputs[key] = value
         response_content = {
