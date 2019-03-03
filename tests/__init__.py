@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import json
 import unittest
 import six
 
@@ -67,7 +68,24 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(obj.create_called)
         
         self.assertEqual(obj.resource_outputs, outputs)
-    
+
+    def test_sns_create(self):
+        properties = {
+        }
+        cfn_event = ccr_utils.generate_request('create', 'Custom::CustomResourceBasicTest', properties,
+                                           CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT)
+        event = ccr_utils.generate_sns_event(json.dumps(cfn_event))
+
+        outputs = {'output_key': 'output_value'}
+
+        obj = self.CustomResourceBasicTest(outputs)
+
+        obj.handle(event, ccr_utils.MockLambdaContext())
+
+        self.assertTrue(obj.create_called)
+
+        self.assertEqual(obj.resource_outputs, outputs)
+
     def test_update(self):
         properties = {
         }
@@ -84,6 +102,25 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(obj.update_called)
         
         self.assertEqual(obj.resource_outputs, outputs)
+
+    def test_sns_update(self):
+        properties = {
+        }
+        old_properties = {}
+        cfn_event = ccr_utils.generate_request('update', 'Custom::CustomResourceBasicTest', properties,
+                                           CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT,
+                                           old_properties=old_properties)
+        event = ccr_utils.generate_sns_event(json.dumps(cfn_event))
+
+        outputs = {'output_key': 'output_value'}
+
+        obj = self.CustomResourceBasicTest(outputs)
+
+        obj.handle(event, ccr_utils.MockLambdaContext())
+
+        self.assertTrue(obj.update_called)
+
+        self.assertEqual(obj.resource_outputs, outputs)
     
     def test_delete(self):
         properties = {
@@ -98,6 +135,23 @@ class BasicTest(unittest.TestCase):
         
         self.assertTrue(obj.delete_called)
         
+        self.assertEqual(obj.resource_outputs, outputs)
+
+    def test_sns_delete(self):
+        properties = {
+        }
+        cfn_event = ccr_utils.generate_request('delete', 'Custom::CustomResourceBasicTest', properties,
+                                           CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT)
+        event = ccr_utils.generate_sns_event(json.dumps(cfn_event))
+
+        outputs = {'output_key': 'output_value'}
+
+        obj = self.CustomResourceBasicTest(outputs)
+
+        obj.handle(event, ccr_utils.MockLambdaContext())
+
+        self.assertTrue(obj.delete_called)
+
         self.assertEqual(obj.resource_outputs, outputs)
     
     def test_single_output(self):
