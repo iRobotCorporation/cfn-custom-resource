@@ -92,6 +92,30 @@ def generate_request(request_type, resource_type, properties, response_url,
 
     return event
 
+
+def generate_sns_event(message, topic_arn=None, subscription_arn=None):
+    topic_arn = topic_arn or "arn:aws:sns:us-east-1:123456789012:example-topic"
+    subscription_arn = subscription_arn or "arn:aws:sns:us-east-1:123456789012:example-topic:0b6941c3-f04d-4d3e-a66d-b1df00e1e381"
+
+    return {"Records": [{
+        "EventVersion": "1.0",
+        "EventSubscriptionArn": subscription_arn,
+        "EventSource": "aws:sns",
+        "Sns": {
+            "SignatureVersion": "1",
+            "Timestamp": "1970-01-01T00:00:00.000Z",
+            "Signature": "EXAMPLE",
+            "SigningCertUrl": "EXAMPLE",
+            "MessageId": "95df01b4-ee98-5cb9-9903-4c221d41eb5e",
+            "Message": message,
+            "MessageAttributes": {},
+            "Type": "Notification",
+            "UnsubscribeUrl": "EXAMPLE",
+            "TopicArn": topic_arn,
+            "Subject": "TestInvoke"
+        }
+    }]}
+
 class ResponseCapturer(object):
     def __init__(self):
         self.resource = None

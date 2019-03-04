@@ -303,7 +303,10 @@ class CloudFormationCustomResource(object):
                     d[field] = repr(value)
             return d
         self._base_logger.info('LambdaContext: %s' % json.dumps(plainify(context)))
-        
+
+        # handle an event nested inside of an SNS event
+        if 'Records' in event and len(event['Records']) == 1:
+            event = json.loads(event['Records'][0]['Sns']['Message'])
 
         self.event = event
         self.context = context
