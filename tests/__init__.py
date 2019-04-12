@@ -36,12 +36,12 @@ class CustomResourceTestBase(CloudFormationCustomResource):
 class BasicTest(unittest.TestCase):
     class CustomResourceBasicTest(CustomResourceTestBase):
         def __init__(self, outputs):
-            super(self.__class__, self).__init__()
+            super(BasicTest.CustomResourceBasicTest, self).__init__()
             self.create_called = False
             self.update_called = False
             self.delete_called = False
             self.outputs = outputs
-        
+
         def create(self):
             self.create_called = True
             return self.outputs
@@ -53,7 +53,12 @@ class BasicTest(unittest.TestCase):
         def delete(self):
             self.delete_called = True
             return self.outputs
-    
+
+    class CustomResourceNoStringifyTest(CustomResourceBasicTest):
+        def __init__(self, outputs):
+            super(BasicTest.CustomResourceNoStringifyTest, self).__init__(outputs)
+            self.STRINGIFY_OUTPUT = False
+
     def test_create(self):
         properties = {
         }
@@ -180,6 +185,37 @@ class BasicTest(unittest.TestCase):
         
         obj.handle(event, ccr_utils.MockLambdaContext())
         
+        self.assertEqual(obj.test_response_content['Status'], CloudFormationCustomResource.STATUS_SUCCESS)
+        self.assertEqual(obj.test_response_content['Data'], outputs)
+
+    def test_response_complex_content(self):
+        properties = {
+        }
+        event = ccr_utils.generate_request('create', 'Custom::CustomResourceBasicTest', properties, CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT)
+
+        outputs = {'output_key': {'subkey': 'subvalue'}}
+
+        obj = self.CustomResourceBasicTest(outputs)
+
+        obj.handle(event, ccr_utils.MockLambdaContext())
+
+        self.assertEqual(obj.test_response_content['Status'], CloudFormationCustomResource.STATUS_SUCCESS)
+        self.assertEqual(obj.test_response_content['Data'],
+                         {
+                             'output_key': '{"subkey": "subvalue"}',  # stringified by default
+                         })
+
+    def test_response_complex_content_not_stringified(self):
+        properties = {
+        }
+        event = ccr_utils.generate_request('create', 'Custom::CustomResourceNoStringifyTest', properties, CloudFormationCustomResource.DUMMY_RESPONSE_URL_SILENT)
+
+        outputs = {'output_key': {'subkey': 'subvalue'}}
+
+        obj = self.CustomResourceNoStringifyTest(outputs)
+
+        obj.handle(event, ccr_utils.MockLambdaContext())
+
         self.assertEqual(obj.test_response_content['Status'], CloudFormationCustomResource.STATUS_SUCCESS)
         self.assertEqual(obj.test_response_content['Data'], outputs)
 
