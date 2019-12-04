@@ -29,7 +29,8 @@ setup(
         "cfn_custom_resource": ["_version"]
     },
     install_requires=['boto3',
-                      'botocore'],
+                      'botocore',
+                      'requests'],
     project_urls={
         "Source Code": "https://github.com/iRobotCorporation/cfn-custom-resource",
     },

@@ -47,7 +47,7 @@ import six
 from six.moves import http_client
 
 import boto3
-from botocore.vendored import requests
+import requests
 
 class CloudFormationCustomResource(object):
     """Base class for CloudFormation custom resource classes.
@@ -105,8 +105,7 @@ class CloudFormationCustomResource(object):
     * send_function, used within CloudFormationCustomResource.cfn_response, takes as
         input the custom resource object, a url, and the response_content dictionary.
         Normally this is set to CloudFormationCustomResource.send_response, which uses
-        requests to send the content to its destination, using the vendored version in
-        botocore.
+        requests to send the content to its destination.
     * generate_unique_id_prefix_function can be set to put a prefix on the id returned
         by generate_unique_id, for example if the physical resource
         id needs to be an ARN.
